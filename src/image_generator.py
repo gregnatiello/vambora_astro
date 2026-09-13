@@ -142,6 +142,28 @@ def _draw_brand_footer(draw: ImageDraw.ImageDraw, mono_font: ImageFont.FreeTypeF
     draw.text(((W - text_w) // 2, H - 90), text, font=mono_font, fill=config.COLOR_TEXT_SECONDARY)
 
 
+def _body_font_for_text(draw: ImageDraw.ImageDraw, text: str, width: int) -> tuple[ImageFont.FreeTypeFont, list[str]]:
+    """Escolhe a maior fonte que mantém o texto principal entre 6 e 8 linhas."""
+    for size in range(40, 30, -1):
+        font = _font(config.FONT_BODY, size)
+        for current_width in range(width, 579, -40):
+            lines = _wrap_text_to_width(draw, text, font, current_width)
+            if 6 <= len(lines) <= 8:
+                return font, lines
+    font = _font(config.FONT_BODY, 31)
+    return font, _wrap_text_to_width(draw, text, font, width)
+
+
+def _phrase_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> list[str]:
+    """Quebra a frase em pelo menos duas linhas, preservando todas as palavras."""
+    lines = _wrap_text_to_width(draw, text, font, 720)
+    if len(lines) >= 2:
+        return lines
+    words = text.split()
+    midpoint = max(1, len(words) // 2)
+    return [" ".join(words[:midpoint]), " ".join(words[midpoint:])]
+
+
 def _load_reference_logo() -> Image.Image:
     """Recorta o pequeno logo existente no template de signo."""
     with Image.open(config.TEMPLATES_DIR / "signo.png").convert("RGBA") as template:
@@ -247,8 +269,7 @@ def render_sign_page(
     number_font = _font(config.FONT_COVER, 58)
     sign_font = _font(config.FONT_TITLE, 73)
     handle_font = _font(config.FONT_COVER, 24)
-    body_font = _font(config.FONT_BODY, 30)
-    phrase_font = _font(config.FONT_BODY, 27)
+    phrase_font = _font(config.FONT_BODY, 29)
 
     content_width = 850
     center_x = sign_size[0] // 2
@@ -271,7 +292,7 @@ def render_sign_page(
         draw.text(((sign_size[0] - emoji_width) // 2, 245), emoji_text, font=emoji_font, fill=config.COLOR_TEXT_PRIMARY)
 
     paragraphs = [paragraph.strip() for paragraph in text.split("\n\n") if paragraph.strip()]
-    body_lines = _wrap_text_to_width(draw, paragraphs[0] if paragraphs else text, body_font, content_width)
+    body_font, body_lines = _body_font_for_text(draw, text, content_width)
     body_end = _draw_multiline_centered(draw, body_lines, body_font, center_x, 365, config.COLOR_TEXT_PRIMARY, line_spacing=1.25)
 
     logo = _load_reference_logo()
@@ -283,7 +304,7 @@ def render_sign_page(
     if phrase_text:
         if not (phrase_text.startswith(('"', "“")) and phrase_text.endswith(('"', "”"))):
             phrase_text = f'"{phrase_text.strip(chr(34) + "“”")}"'
-        phrase_lines = _wrap_text_to_width(draw, phrase_text, phrase_font, content_width)
+        phrase_lines = _phrase_lines(draw, phrase_text, phrase_font)
         _draw_multiline_centered(draw, phrase_lines, phrase_font, center_x, logo_y + logo.height + 28, config.COLOR_TEXT_PRIMARY, line_spacing=1.25)
     return img
 
