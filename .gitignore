@@ -1,0 +1,20 @@
+# Ambiente / segredos
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Saídas geradas (pacotes de post são conteúdo, não código-fonte)
+output/*
+!output/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+data/*
+!data/.gitkeep
+
+.DS_Store
