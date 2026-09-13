@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 import textwrap
 from pathlib import Path
+from urllib.parse import quote
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -154,6 +155,43 @@ def _load_reference_logo() -> Image.Image:
     return logo.resize((104, 80), Image.Resampling.LANCZOS)
 
 
+def _emoji_codepoints(emoji: str) -> str:
+    return "-".join(f"{ord(char):x}" for char in emoji if ord(char) != 0xfe0f)
+
+
+def _load_color_emoji(emoji: str, size: int = 42) -> Image.Image | None:
+    """Baixa e faz cache do PNG colorido aberto usado para um emoji."""
+    try:
+        config.EMOJI_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        codepoints = _emoji_codepoints(emoji)
+        cache_path = config.EMOJI_CACHE_DIR / f"{codepoints}.png"
+        if not cache_path.exists():
+            import requests
+
+            url = f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{quote(codepoints)}.png"
+            response = requests.get(url, timeout=config.REQUEST_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            cache_path.write_bytes(response.content)
+        with Image.open(cache_path) as image:
+            return image.convert("RGBA").resize((size, size), Image.Resampling.LANCZOS)
+    except Exception as exc:  # noqa: BLE001
+        logger.info("Asset colorido indisponível para emoji %s: %s", emoji, exc)
+        return None
+
+
+def _draw_color_emojis(image: Image.Image, emojis: list[str], center_x: int, top_y: int) -> bool:
+    assets = [_load_color_emoji(emoji) for emoji in emojis[:3]]
+    if not all(assets):
+        return False
+    gap = 8
+    total_width = sum(asset.width for asset in assets) + gap * (len(assets) - 1)
+    x = center_x - total_width // 2
+    for asset in assets:
+        image.paste(asset, (x, top_y), asset)
+        x += asset.width + gap
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Renderização das páginas
 # ---------------------------------------------------------------------------
@@ -195,7 +233,13 @@ def render_cover(title: str, subtitle: str) -> Image.Image:
     return img
 
 
-def render_sign_page(position: int, sign: str, text: str, phrase: str = "") -> Image.Image:
+def render_sign_page(
+    position: int,
+    sign: str,
+    text: str,
+    phrase: str = "",
+    emojis: list[str] | None = None,
+) -> Image.Image:
     sign_size = (1080, 1080)
     img = Image.new("RGB", sign_size, (0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -218,6 +262,13 @@ def render_sign_page(position: int, sign: str, text: str, phrase: str = "") -> I
     handle = config.BRAND_HANDLE
     handle_width = draw.textbbox((0, 0), handle, font=handle_font)[2]
     draw.text(((sign_size[0] - handle_width) // 2, 202), handle, font=handle_font, fill=config.COLOR_TEXT_SECONDARY)
+
+    emoji_list = (emojis or [])[:3]
+    if emoji_list and not _draw_color_emojis(img, emoji_list, center_x, 240):
+        emoji_text = "".join(emoji_list)
+        emoji_font = _font(config.FONT_EMOJI, 32)
+        emoji_width = draw.textbbox((0, 0), emoji_text, font=emoji_font)[2]
+        draw.text(((sign_size[0] - emoji_width) // 2, 245), emoji_text, font=emoji_font, fill=config.COLOR_TEXT_PRIMARY)
 
     paragraphs = [paragraph.strip() for paragraph in text.split("\n\n") if paragraph.strip()]
     body_lines = _wrap_text_to_width(draw, paragraphs[0] if paragraphs else text, body_font, content_width)

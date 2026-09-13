@@ -42,6 +42,8 @@ REGRAS OBRIGATÓRIAS:
 - O campo "phrase" deve ter entre 114 e 118 caracteres (alvo médio), sempre
   terminando em pontuação completa. Deve ser uma frase curta entre aspas,
   escrita como se fosse uma pessoa daquele signo falando sobre o tema.
+- O campo "emojis" deve conter exatamente 3 emojis Unicode relacionados ao
+  texto e ao signo. Não use palavras, hashtags ou mais de três emojis.
 - Nunca complete texto com frases repetidas, reticências ou cortes no meio de uma
   palavra/frase. Conte os caracteres antes de responder.
 - O campo "cover_title" será colocado entre as linhas fixas "Os signos mais"
@@ -71,7 +73,7 @@ Responda apenas com este JSON:
   "cover_title": "complemento para 'Os signos mais ___ do zodíaco', direto e ligado à notícia",
   "subtitle": "subtítulo curto e provocativo, até {max_subtitle} caracteres",
   "signs": [
-    {{"sign": "Nome do signo", "text": "texto entre {text_target_min} e {text_target_max} caracteres", "phrase": "\"frase curta, entre aspas, como uma fala desse signo sobre o tema\""}},
+    {{"sign": "Nome do signo", "emojis": ["emoji1", "emoji2", "emoji3"], "text": "texto entre {text_target_min} e {text_target_max} caracteres", "phrase": "\"frase curta, entre aspas, como uma fala desse signo sobre o tema\""}},
     ... (exatamente 5 itens, do #1 ao #5)
   ]
 }}
@@ -131,6 +133,9 @@ def _validate_ai_payload(data: dict) -> str | None:
           return f"o texto de {item.get('sign', 'um signo')} deve ser um texto não vazio"
         if not isinstance(phrase, str) or not phrase.strip():
           return f"a frase de {item.get('sign', 'um signo')} deve ser um texto não vazio"
+        emojis = item.get("emojis")
+        if not isinstance(emojis, list) or len(emojis) != 3 or not all(isinstance(emoji, str) and emoji.strip() for emoji in emojis):
+          return f"o signo {item.get('sign', 'desconhecido')} deve ter exatamente 3 emojis relacionados"
     return None
 
 
@@ -142,6 +147,14 @@ def _generate_via_fallback(topic: dict) -> dict:
     # ao menos embaralha a ordem dos signos pra dar uma cara diferente
     if was_recently_used(base["carousel_title"], field="carousel_title"):
         random.shuffle(base["signs"])
+    fallback_emojis = {
+        "Discussões": ["💬", "🔥", "👀"],
+        "Traição": ["💔", "👀", "🚩"],
+        "Ciúmes": ["👀", "💢", "🔍"],
+        "Término": ["💔", "🥀", "👋"],
+    }.get(category, ["💬", "🔥", "👀"])
+    for item in base["signs"]:
+        item.setdefault("emojis", fallback_emojis.copy())
     return base
 
 

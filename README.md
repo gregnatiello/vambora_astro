@@ -8,7 +8,6 @@ revisar e publicar manualmente no TikTok.
 **Esta versão NÃO publica nada automaticamente.** Ela só monta o pacote na
 pasta `output/`.
 
----
 
 ## 1. Instalação
 
@@ -88,13 +87,13 @@ caracteres no texto e `114` a `118` caracteres na frase, mas a resposta da IA
 | Alvo médio recomendado | `config/config.py`, `TARGET_*` |
 | Consultas de tendências | `config/config.py`, `GOOGLE_NEWS_RSS_QUERIES` |
 | Cores, fontes e identidade | `config/config.py` |
+| Fonte dos emojis | `config/config.py`, `FONT_EMOJI` |
 | Posições e tamanhos das imagens | `src/image_generator.py` |
 
 Não coloque uma instrução de “cortar” ou “completar com a mesma frase” no
 prompt. O projeto envia a orientação de média para a IA e preserva a resposta
 completa que ela retornar.
 
----
 
 ## 3. O que o sistema faz em cada execução
 
@@ -123,7 +122,6 @@ Salvar tudo em output/AAAA-MM-DD_titulo/
 O modo `--test` usa o banco local. Na produção, se a IA falhar, o sistema
 interrompe sem criar um post com tema chumbado no lugar da tendência real.
 
----
 
 ## 4. Identidade visual (layout fixo)
 
@@ -140,10 +138,8 @@ execução** — só o conteúdo muda. Por isso:
   numa fonte bold arredondada, corpo numa serifada, selo numa mono) usam
   fontes livres parecidas (Poppins Bold / Lora / DejaVu Sans Mono) só como
   placeholder, já que não tenho os arquivos originais da fonte do canal.
-- Cores, margens e posições dos elementos ficam centralizadas em
   `config/config.py` (`COLOR_BACKGROUND`, `COLOR_ACCENT` etc.).
 
----
 
 ## 5. Variáveis de ambiente (`.env`)
 
@@ -184,8 +180,6 @@ como `término namoro famoso`, `influencer polêmica` ou `reality show treta`.
 
 O prompt é dividido em duas partes em `src/content_generator.py`:
 
-- `_SYSTEM_PROMPT`: personalidade, segurança, idioma e regras de escrita.
-- `_USER_PROMPT_TEMPLATE`: tema pesquisado, formato JSON, campos da capa,
   textos dos signos, limites de caracteres e instrução adicional.
 
 Altere o `_SYSTEM_PROMPT` para mudar o comportamento geral. Altere o
@@ -193,7 +187,6 @@ Altere o `_SYSTEM_PROMPT` para mudar o comportamento geral. Altere o
 os campos `carousel_title`, `cover_title`, `subtitle`, `sign`, `text` e
 `phrase`, porque o renderizador depende deles.
 
----
 
 ## 6. Estrutura do projeto
 
@@ -219,7 +212,6 @@ tiktok_signos/
 └── data/history.json            # histórico p/ evitar repetição de temas
 ```
 
----
 
 ## 7. Próxima etapa (não incluída nesta versão)
 

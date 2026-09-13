@@ -20,6 +20,7 @@ LOGS_DIR = BASE_DIR / "logs"
 TEMPLATES_DIR = BASE_DIR / "templates"
 FONTS_DIR = BASE_DIR / "fonts"
 DATA_DIR = BASE_DIR / "data"
+EMOJI_CACHE_DIR = DATA_DIR / "emoji_cache"
 HISTORY_FILE = DATA_DIR / "history.json"
 
 # ---------------------------------------------------------------------------
@@ -48,6 +49,7 @@ FONT_COVER = str(FONTS_DIR / "computer-says-no.otf")
 FONT_TITLE = str(FONTS_DIR / "Kapsalon Brush DEMO.otf")
 FONT_BODY = str(FONTS_DIR / "Cardo-Regular.ttf")
 FONT_MONO = str(FONTS_DIR / "label.ttf")
+FONT_EMOJI = r"C:\Windows\Fonts\seguiemj.ttf"
 
 # ---------------------------------------------------------------------------
 # CONTEÚDO / TEXTO

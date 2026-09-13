@@ -73,6 +73,7 @@ def build_carousel(content: dict) -> dict:
             sign_name,
             sign_item["text"],
             sign_item.get("phrase", ""),
+            sign_item.get("emojis", []),
         )
         filename = f"{idx:02d}_{_sign_slug(sign_name)}.png"
         page_path = post_dir / filename
