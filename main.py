@@ -65,69 +65,93 @@ def _topic_from_cli_arg(topic_text: str) -> dict:
     }
 
 
-def main() -> int:
-    args = parse_args()
+def generate_post(
+    mode: str = "trend",
+    topic_text: str = "",
+    selected_topic: dict | None = None,
+    instruction: str = "",
+    test: bool = False,
+) -> str:
+    """Executa o pipeline e retorna a pasta do post criado."""
     ensure_dirs()
     logger = setup_logger()
 
     logger.info("Iniciando geração")
 
+    # 1) Descobrir/definir o tema ---------------------------------------------
+    if mode == "custom":
+        if not topic_text.strip():
+            raise ValueError("Digite um tema antes de gerar o post.")
+        logger.info(f"Tema informado: {topic_text}")
+        topic = _topic_from_cli_arg(topic_text.strip())
+    elif test:
+        logger.info("Modo de teste ativado — pulando pesquisa de tendências.")
+        topic = _fake_test_topic()
+    elif selected_topic:
+        topic = dict(selected_topic)
+        topic["category"] = topic_selector._categorize(topic)
+        logger.info(f"Tendência escolhida: {topic['title']}")
+    else:
+        logger.info("Pesquisando tendências")
+        trends = trend_finder.find_trends()
+        logger.info(f"{len(trends)} assuntos encontrados")
+        topic = topic_selector.select_topic(trends)
+
+    # 2) Gerar conteúdo --------------------------------------------------------
+    logger.info("Gerando conteúdo")
+    content = content_generator.generate_content(
+        topic,
+        force_offline=test,
+        extra_instruction=instruction.strip(),
+    )
+
+    # 3) Validar ---------------------------------------------------------------
+    content = text_validator.validate_content(content)
+    logger.info("Conteúdo validado")
+
+    # 4) Gerar imagens ---------------------------------------------------------
+    logger.info("Gerando imagens")
+    build_result = carousel_builder.build_carousel(content)
+    post_dir = build_result["post_dir"]
+
+    # 5) Legenda e hashtags ----------------------------------------------------
+    caption_text, hashtags = caption_generator.generate_caption(content)
+    content["caption"] = caption_text
+    content["hashtags"] = hashtags
+    content["date"] = post_dir.name.split("_", 1)[0]
+
+    # 6) Salvar post.json e legenda.txt ----------------------------------------
+    from src.utils import write_json, write_text
+    write_json(post_dir / "post.json", content)
+    write_text(post_dir / "legenda.txt", caption_text)
+
+    # 7) Atualizar histórico ----------------------------------------------------
+    append_history({
+        "date": content["date"],
+        "source_topic": topic.get("title", ""),
+        "carousel_title": content["carousel_title"],
+        "category": content.get("category"),
+        "signs": [s["sign"] for s in content["signs"]],
+    })
+
+    logger.info(f"Output: {post_dir}")
+    logger.info("Pronto! Abra a pasta acima, revise e publique manualmente no TikTok.")
+    return str(post_dir)
+
+
+def main() -> int:
+    args = parse_args()
     try:
-        # 1) Descobrir/definir o tema -------------------------------------------------
-        if args.topic:
-            logger.info(f"Tema informado via --topic: {args.topic}")
-            topic = _topic_from_cli_arg(args.topic)
-        elif args.test:
-            logger.info("Modo de teste ativado — pulando pesquisa de tendências.")
-            topic = _fake_test_topic()
-        else:
-            logger.info("Pesquisando tendências")
-            trends = trend_finder.find_trends()
-            logger.info(f"{len(trends)} assuntos encontrados")
-            topic = topic_selector.select_topic(trends)
-
-        # 2) Gerar conteúdo -------------------------------------------------
-        logger.info("Gerando conteúdo")
-        content = content_generator.generate_content(
-            topic,
-            force_offline=args.test,
-            extra_instruction=args.instruction,
+        generate_post(
+            mode="custom" if args.topic else "trend",
+            topic_text=args.topic or "",
+            instruction=args.instruction,
+            test=args.test,
         )
-
-        # 3) Validar -------------------------------------------------
-        content = text_validator.validate_content(content)
-        logger.info("Conteúdo validado")
-
-        # 4) Gerar imagens -------------------------------------------------
-        logger.info("Gerando imagens")
-        build_result = carousel_builder.build_carousel(content)
-        post_dir = build_result["post_dir"]
-
-        # 5) Legenda e hashtags -------------------------------------------------
-        caption_text, hashtags = caption_generator.generate_caption(content)
-        content["caption"] = caption_text
-        content["hashtags"] = hashtags
-        content["date"] = post_dir.name.split("_", 1)[0]
-
-        # 6) Salvar post.json e legenda.txt -------------------------------------------------
-        from src.utils import write_json, write_text
-        write_json(post_dir / "post.json", content)
-        write_text(post_dir / "legenda.txt", caption_text)
-
-        # 7) Atualizar histórico (evitar repetição — item 28) -------------------------------------------------
-        append_history({
-            "date": content["date"],
-            "source_topic": topic.get("title", ""),
-            "carousel_title": content["carousel_title"],
-            "category": content.get("category"),
-            "signs": [s["sign"] for s in content["signs"]],
-        })
-
-        logger.info(f"Output: {post_dir}")
-        logger.info("Pronto! Abra a pasta acima, revise e publique manualmente no TikTok.")
         return 0
 
     except Exception as exc:  # noqa: BLE001
+        logger = setup_logger()
         logger.error(f"Falha na geração do post: {exc}")
         logger.error(traceback.format_exc())
         return 1

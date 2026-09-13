@@ -67,6 +67,19 @@ Para ajustar o tom da IA em uma execução:
 python main.py --instruction "Seja mais incisivo e provocador, sem fazer acusações não confirmadas."
 ```
 
+### Aplicativo com janela
+
+Para gerar sem usar o terminal, execute `GeradorTikTok.exe` na pasta do projeto.
+Na tela é possível escolher uma tendência, digitar um tema próprio, adicionar
+uma instrução para a IA e abrir automaticamente a pasta do resultado.
+
+Para recriar o executável depois de alterar o código, execute `build_exe.bat`.
+Na primeira vez, instale as dependências no ambiente virtual:
+
+```bash
+.venv\\Scripts\\python -m pip install -r requirements.txt
+```
+
 Também é possível deixar uma instrução padrão em `EXTRA_AI_INSTRUCTION` no
 arquivo `.env`. A IA recebe como referência uma média de `315` a `318`
 caracteres no texto e `114` a `118` caracteres na frase, mas a resposta da IA
