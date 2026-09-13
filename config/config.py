@@ -129,6 +129,12 @@ GOOGLE_NEWS_RSS_URL = (
     "https://news.google.com/rss/search?q={query}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
 )
 
+# O X/Twitter não oferece mais busca de tendências gratuita (API de search
+# paga desde 2023). O Google Trends (via pytrends) é o substituto gratuito
+# mais próximo de "o que está sendo comentado/pesquisado agora" no Brasil.
+SOCIAL_BUZZ_MAX_RESULTS = 10
+SOCIAL_BUZZ_SCORE_BONUS = 8  # bônus por já estar bombando "ao vivo"
+
 REQUEST_TIMEOUT_SECONDS = 8
 
 # ---------------------------------------------------------------------------

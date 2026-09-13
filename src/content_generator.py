@@ -13,6 +13,7 @@ from __future__ import annotations
 import copy
 import logging
 import random
+import unicodedata
 
 from config import config
 from src.ai_client import AIClient
@@ -66,6 +67,8 @@ Categoria temática: {category}
 Transforme esse gatilho em um carrossel de TOP 5 SIGNOS sobre o tema
 "{category}". Escolha os 5 signos que fazem mais sentido pra esse tema
 específico (não repita sempre a mesma sequência) e ordene do #1 ao #5.
+Cada item deve usar o nome exato do signo correspondente ao próprio texto e
+aos próprios emojis. Os 5 signos devem ser diferentes, sem nenhuma repetição.
 
 Responda apenas com este JSON:
 {{
@@ -122,11 +125,27 @@ def _validate_ai_payload(data: dict) -> str | None:
         return "carousel_title e subtitle são obrigatórios"
     cover_title = data.get("cover_title", "")
     if not isinstance(cover_title, str) or not cover_title.strip():
-      return "cover_title deve ser um texto não vazio"
+        return "cover_title deve ser um texto não vazio"
 
+    valid_signs = {
+        unicodedata.normalize("NFKD", sign).encode("ascii", "ignore").decode("ascii").lower()
+        for sign in config.SIGNS
+    }
+    seen_signs = set()
     for item in signs:
         if not isinstance(item, dict):
             return "cada item de signs deve ser um objeto"
+        sign_name = item.get("sign", "")
+        normalized_sign = (
+            unicodedata.normalize("NFKD", sign_name).encode("ascii", "ignore").decode("ascii").lower()
+            if isinstance(sign_name, str)
+            else ""
+        )
+        if normalized_sign not in valid_signs:
+            return f"o signo {sign_name or 'desconhecido'} não é um signo válido"
+        if normalized_sign in seen_signs:
+            return f"o signo {sign_name} está repetido; os 5 signos devem ser diferentes"
+        seen_signs.add(normalized_sign)
         text = item.get("text", "")
         phrase = item.get("phrase", "")
         if not isinstance(text, str) or not text.strip():

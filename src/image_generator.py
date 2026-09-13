@@ -184,34 +184,40 @@ def _emoji_codepoints(emoji: str) -> str:
 
 def _load_color_emoji(emoji: str, size: int = 42) -> Image.Image | None:
     """Baixa e faz cache do PNG colorido aberto usado para um emoji."""
-    try:
-        config.EMOJI_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        codepoints = _emoji_codepoints(emoji)
-        cache_path = config.EMOJI_CACHE_DIR / f"{codepoints}.png"
-        if not cache_path.exists():
-            import requests
+    config.EMOJI_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    candidates = [emoji]
+    if "\u200d" in emoji:
+        candidates.append(emoji.split("\u200d", 1)[0])
 
-            url = f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{quote(codepoints)}.png"
-            response = requests.get(url, timeout=config.REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()
-            cache_path.write_bytes(response.content)
-        with Image.open(cache_path) as image:
-            return image.convert("RGBA").resize((size, size), Image.Resampling.LANCZOS)
-    except Exception as exc:  # noqa: BLE001
-        logger.info("Asset colorido indisponível para emoji %s: %s", emoji, exc)
-        return None
+    for candidate in candidates:
+        try:
+            codepoints = _emoji_codepoints(candidate)
+            cache_path = config.EMOJI_CACHE_DIR / f"{codepoints}.png"
+            if not cache_path.exists():
+                import requests
+
+                url = f"https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{quote(codepoints)}.png"
+                response = requests.get(url, timeout=config.REQUEST_TIMEOUT_SECONDS)
+                response.raise_for_status()
+                cache_path.write_bytes(response.content)
+            with Image.open(cache_path) as image:
+                return image.convert("RGBA").resize((size, size), Image.Resampling.LANCZOS)
+        except Exception as exc:  # noqa: BLE001
+            logger.info("Asset colorido indisponível para emoji %s: %s", candidate, exc)
+    return None
 
 
 def _draw_color_emojis(image: Image.Image, emojis: list[str], center_x: int, top_y: int) -> bool:
     assets = [_load_color_emoji(emoji) for emoji in emojis[:3]]
-    if not all(assets):
+    if not any(assets):
         return False
     gap = 8
-    total_width = sum(asset.width for asset in assets) + gap * (len(assets) - 1)
+    total_width = 42 * len(assets) + gap * (len(assets) - 1)
     x = center_x - total_width // 2
     for asset in assets:
-        image.paste(asset, (x, top_y), asset)
-        x += asset.width + gap
+        if asset:
+            image.paste(asset, (x, top_y), asset)
+        x += 42 + gap
     return True
 
 

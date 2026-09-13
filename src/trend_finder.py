@@ -91,6 +91,47 @@ def _from_google_news() -> list[dict]:
     return trends
 
 
+def _from_social_buzz() -> list[dict]:
+    """Busca os assuntos em alta *agora* no Google Trends Brasil.
+
+    O X/Twitter não tem mais busca de tendências gratuita (a API de search
+    exige plano pago desde 2023), então usamos o Google Trends como o
+    termômetro mais próximo e gratuito de 'o que o pessoal está comentando
+    e pesquisando agora' — normalmente é a mesma treta que está bombando
+    nas redes, só que captada pelo volume de busca em vez de tweets.
+    """
+    try:
+        from pytrends.request import TrendReq
+    except ImportError:
+        logger.info("Pacote 'pytrends' não instalado — pulando Google Trends.")
+        return []
+
+    trends: list[dict] = []
+    try:
+        pytrends = TrendReq(hl="pt-BR", tz=180)
+        df = pytrends.trending_searches(pn="brazil")
+    except Exception as exc:  # noqa: BLE001
+        logger.info(f"Google Trends falhou: {exc}")
+        return []
+
+    for raw_title in df[0].tolist()[: config.SOCIAL_BUZZ_MAX_RESULTS]:
+        title = (raw_title or "").strip()
+        if not title:
+            continue
+        # Bônus fixo: é tendência "ao vivo" agora, então já entra quente.
+        score = _score_text(title) + config.SOCIAL_BUZZ_SCORE_BONUS
+        trends.append({
+            "title": title,
+            "source": "Google Trends (BR)",
+            "url": "",
+            "summary": title,
+            "published_at": None,
+            "engagement_score": score,
+            "query": "trending_now",
+        })
+    return trends
+
+
 def _from_news_api() -> list[dict]:
     """Fallback secundário via NewsAPI, se uma chave estiver configurada."""
     if not config.NEWS_API_KEY:
@@ -168,14 +209,20 @@ def find_trends() -> list[dict]:
     """Executa a cadeia de fallback e retorna a lista consolidada de
     tendências, já ordenada por engagement_score (maior primeiro)."""
     logger.info("Pesquisando tendências (Google News RSS)...")
-    trends = []
+    trends: list[dict] = []
     try:
-        trends = _from_google_news()
+        trends += _from_google_news()
     except Exception as exc:  # noqa: BLE001
         logger.info(f"Google News indisponível: {exc}")
 
+    logger.info("Pesquisando tendências sociais (Google Trends BR)...")
+    try:
+        trends += _from_social_buzz()
+    except Exception as exc:  # noqa: BLE001
+        logger.info(f"Google Trends indisponível: {exc}")
+
     if not trends:
-        logger.info("Google News sem resultados — tentando NewsAPI...")
+        logger.info("Nenhum resultado em Google News/Trends — tentando NewsAPI...")
         trends = _from_news_api()
 
     if not trends:
