@@ -18,6 +18,39 @@ from typing import Any
 from config import config
 
 
+_EMOJI_RANGES = (
+    (0x1F000, 0x1FAFF),
+    (0x2600, 0x27BF),
+    (0x2300, 0x23FF),
+    (0x2190, 0x21FF),
+    (0x2B00, 0x2BFF),
+    (0x25A0, 0x25FF),
+    (0x00A9, 0x00AE),
+    (0x203C, 0x2049),
+    (0x2122, 0x2139),
+    (0x3297, 0x3299),
+)
+_EMOJI_COMPONENTS = {0x200D, 0xFE0E, 0xFE0F, *range(0x1F3FB, 0x1F400)}
+
+
+def is_emoji(value: str) -> bool:
+    """Retorna True quando o valor é formado apenas por um emoji Unicode."""
+    value = value.strip()
+    if not value:
+        return False
+
+    has_emoji_base = False
+    for character in value:
+        codepoint = ord(character)
+        if codepoint in _EMOJI_COMPONENTS:
+            continue
+        if any(start <= codepoint <= end for start, end in _EMOJI_RANGES):
+            has_emoji_base = True
+            continue
+        return False
+    return has_emoji_base
+
+
 def setup_logger(name: str = "tiktok_signos") -> logging.Logger:
     """Configura um logger que escreve simultaneamente no console e em
     logs/run.log, no formato pedido no prompt: [HH:MM:SS] mensagem."""

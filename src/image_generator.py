@@ -28,6 +28,7 @@ from urllib.parse import quote
 from PIL import Image, ImageDraw, ImageFont
 
 from config import config
+from src.utils import is_emoji
 
 logger = logging.getLogger("tiktok_signos")
 
@@ -284,7 +285,7 @@ def render_sign_page(
     handle_width = draw.textbbox((0, 0), handle, font=handle_font)[2]
     draw.text(((sign_size[0] - handle_width) // 2, 202), handle, font=handle_font, fill=config.COLOR_TEXT_SECONDARY)
 
-    emoji_list = (emojis or [])[:3]
+    emoji_list = [emoji for emoji in (emojis or []) if is_emoji(emoji)][:3]
     if emoji_list and not _draw_color_emojis(img, emoji_list, center_x, 240):
         emoji_text = "".join(emoji_list)
         emoji_font = _font(config.FONT_EMOJI, 32)

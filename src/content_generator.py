@@ -17,7 +17,7 @@ import random
 from config import config
 from src.ai_client import AIClient
 from src.fallback_bank import get_fallback_set
-from src.utils import was_recently_used
+from src.utils import is_emoji, was_recently_used
 
 logger = logging.getLogger("tiktok_signos")
 
@@ -134,7 +134,7 @@ def _validate_ai_payload(data: dict) -> str | None:
         if not isinstance(phrase, str) or not phrase.strip():
           return f"a frase de {item.get('sign', 'um signo')} deve ser um texto não vazio"
         emojis = item.get("emojis")
-        if not isinstance(emojis, list) or len(emojis) != 3 or not all(isinstance(emoji, str) and emoji.strip() for emoji in emojis):
+        if not isinstance(emojis, list) or len(emojis) != 3 or not all(isinstance(emoji, str) and is_emoji(emoji) for emoji in emojis):
           return f"o signo {item.get('sign', 'desconhecido')} deve ter exatamente 3 emojis relacionados"
     return None
 

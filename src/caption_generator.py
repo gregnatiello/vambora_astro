@@ -17,6 +17,12 @@ CTA_LINES = [
     "Marca o ex que se encaixa perfeitamente.",
     "Discorda? Defende seu signo nos comentários.",
     "Isso aqui vai dar briga nos comentários, eu já sei.",
+    "Quero ver quem vai admitir que é exatamente assim.",
+    "Comenta o signo que mais merecia estar nessa lista.",
+    "Marca alguém que vai ficar ofendido com esse ranking.",
+    "Qual posição você mudaria?",
+    "Não vale escolher o signo dos outros. E o seu?",
+    "A verdade apareceu. Agora quero ver a defesa nos comentários.",
 ]
 
 OPENERS = [
@@ -24,7 +30,46 @@ OPENERS = [
     "Calma, é só brincadeira... ou não. 😅",
     "Se ofendeu, provavelmente é você.",
     "Prepara o print pra mandar pro grupo.",
+    "A lista saiu e já tem signo preparando a defesa.",
+    "Isso aqui vai causar uma pequena crise no grupo.",
+    "Alguns signos vão passar reto. Outros vão comentar em caps lock.",
+    "O zodíaco pediu exposição. Então está aqui.",
+    "Ninguém está pronto para se reconhecer nessa lista.",
+    "Pode respirar antes de procurar o seu signo.",
 ]
+
+THEME_HOOKS = {
+    "Traição": [
+        "Quando o assunto é traição, a desculpa já vem pronta.",
+        "Tem signo que chama de acaso aquilo que todo mundo chama de traição.",
+        "Aqui, o problema nunca é a oportunidade. É a falta de vergonha mesmo.",
+        "Se aparecer um 'foi só conversa', desconfie do signo imediatamente.",
+    ],
+    "Término": [
+        "Terminar é fácil. Difícil é não voltar para o mesmo problema.",
+        "Tem signo que termina hoje e sente saudade antes de dormir.",
+        "O fim do namoro chegou, mas o drama ainda está só começando.",
+        "Alguns superam. Outros só esperam o ex mandar mensagem.",
+    ],
+    "Ciúmes": [
+        "Tem signo que chama de intuição o que já é investigação criminal.",
+        "Um like suspeito e pronto: começou a auditoria do relacionamento.",
+        "Aqui, cinco minutos sem resposta já viram uma teoria completa.",
+        "O problema não é sentir ciúme. É montar um dossiê com provas.",
+    ],
+    "Discussões": [
+        "Tem signo que não quer resolver a briga. Quer ganhar o debate.",
+        "Uma conversa normal dura pouco quando esses signos entram no assunto.",
+        "Aqui, qualquer detalhe vira argumento, discurso e replay da briga.",
+        "A discussão podia acabar rápido, mas alguém decidiu fazer um podcast.",
+    ],
+    "Relacionamentos": [
+        "No amor, esses signos conseguem transformar detalhe em temporada inteira.",
+        "O problema começa pequeno e termina com textão no celular.",
+        "Tem signo que ama a pessoa e o drama na mesma intensidade.",
+        "Relacionamento tranquilo? Para esses signos, só se for em outro mapa astral.",
+    ],
+}
 
 BASE_HASHTAGS = ["#signos", "#astrologia", "#horoscopo", "#zodiaco"]
 
@@ -44,16 +89,20 @@ EXTRA_HASHTAGS = ["#tiktokbrasil", "#paravoce", "#fy", "#signosdozodiaco"]
 
 def generate_caption(content: dict) -> tuple[str, list[str]]:
     opener = random.choice(OPENERS)
+    category = content.get("category", "Relacionamentos")
+    hooks = THEME_HOOKS.get(category, THEME_HOOKS["Relacionamentos"])
+    theme_hook = random.choice(hooks)
     ctas = random.sample(CTA_LINES, k=2)
 
     caption_lines = [
         opener,
         "",
+        theme_hook,
+        "",
         ctas[0],
         ctas[1],
     ]
 
-    category = content.get("category", "Relacionamentos")
     hashtags = list(BASE_HASHTAGS)
     hashtags += CATEGORY_HASHTAGS.get(category, CATEGORY_HASHTAGS["Relacionamentos"])
     hashtags += random.sample(EXTRA_HASHTAGS, k=2)
